@@ -36,18 +36,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      # Install TypeScript and dependencies
-      - name: Install Dependencies with Compatibility Fix
-        run: |
-          npm install --save-dev typescript@4.9.5
-          npm install --save-dev jest@^29 ts-jest@^29
-          npm ci
-
-      - name: Install Dependencies with Legacy Peer Deps
-        run: npm ci
-
-
       # SAST: CodeQL Security Analysis
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
