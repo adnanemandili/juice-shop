@@ -44,8 +44,9 @@ jobs:
           npm install --save-dev ts-jest@latest
           npm ci
 
-      - name: Install Dependencies
-        run: npm ci
+      - name: Install Dependencies with Legacy Peer Deps
+        run: npm install --legacy-peer-deps
+
 
       # SAST: CodeQL Security Analysis
       - name: Initialize CodeQL
