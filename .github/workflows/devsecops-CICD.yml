@@ -36,6 +36,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
       # SAST: CodeQL Security Analysis
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
@@ -45,23 +46,25 @@ jobs:
           config: |
             paths-ignore:
               - 'data/static/codefixes'
-
       - name: Autobuild
         uses: github/codeql-action/autobuild@v2
-
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
         with:
           category: "/language:javascript"
           output: "codeql-results"
-
-      - name: Upload CodeQL results as artifact
+      - name: Upload codeQL results as artifact
         uses: actions/upload-artifact@v4
         with: 
           name: codeql-scan-results
           path: codeql-results/*.sarif
 
       # SCA: Snyk Vulnerability Scanning
+      - uses: actions/checkout@master
+      - name: Install Dependencies
+        run: npm install
+      - name: Create sarif-files directory
+        run: mkdir -p sarif-files
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
         continue-on-error: true
@@ -69,8 +72,11 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --sarif-file-output=snyk.sarif
-
-      - name: Upload Snyk results as artifact
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: snyk.sarif
+      - name: Upload snyk results as artifact
         uses: actions/upload-artifact@v4
         with: 
           name: snyk-scan-results
@@ -82,7 +88,6 @@ jobs:
           docker run -d -p 3000:3000 --name juice-shop bkimminich/juice-shop
           # Wait for container to be healthy
           timeout 60 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:3000)" != "200" ]]; do sleep 5; done' || false
-
       - name: Run OWASP ZAP Scan
         uses: zaproxy/action-full-scan@v0.12.0
         with:
@@ -91,8 +96,7 @@ jobs:
           target: 'http://localhost:3000'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a -d -x zap-results.xml -I'
-
-      - name: Upload ZAP results as artifact
+      - name: Upload zap results as artifact
         uses: actions/upload-artifact@v4
         with: 
           name: zap-scan-results
@@ -135,7 +139,7 @@ jobs:
             )
           ' scan-results/snyk/snyk.sarif scan-results/codeql/*.sarif > reports/combined.sarif
 
-      # DAST results scan using SonarCloud
+      # First scan for ZAP results
       - name: SonarCloud DAST Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
@@ -149,7 +153,7 @@ jobs:
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.zaproxy.reportPath=scan-results/zap/zap-results.xml
 
-      # SAST/SCA results scan using SonarCloud
+      # Second scan for SAST/SCA results
       - name: SonarCloud SAST/SCA Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
@@ -170,6 +174,7 @@ jobs:
           echo "Scan Results Summary:"
           echo "===================="
           echo "📊 Results uploaded to SonarCloud"
+          echo "🔍 Quality Gate Status: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
           echo "Final Files Structure:"
           ls -R scan-results/
           
