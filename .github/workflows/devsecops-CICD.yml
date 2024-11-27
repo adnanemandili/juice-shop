@@ -165,7 +165,11 @@ jobs:
             -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
             -Dsonar.sources=.
             -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.scm.provider=git
+            -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/jacoco/test/jacocoTestReport.xml
+            -Dsonar.tests=src/test/java
             -Dsonar.sarifReportPaths=reports/combined.sarif
+     
 
       # List Final Files and Summary
       - name: Scan Results Summary
